@@ -298,6 +298,9 @@ def get_or_create_album(request: Optional[Request] = None, album_name_override: 
         r = requests.post(create_url, headers={**immich_headers(request), "Content-Type": "application/json"}, 
                           json=payload, timeout=10)
         
+        logger.error("Immich upload response status: %s", r.status_code)
+        logger.error("Immich upload response body: %s", r.text)
+        
         if r.status_code in (200, 201):
             data = r.json()
             new_id = data.get("id")
@@ -614,6 +617,10 @@ async def api_upload(
         headers = {"Accept": "application/json", "Content-Type": monitor.content_type, "x-immich-checksum": checksum, **immich_headers(request)}
         try:
             r = requests.post(f"{SETTINGS.normalized_base_url}/assets", headers=headers, data=monitor, timeout=120)
+
+            logger.error("Immich upload response status: %s", r.status_code)
+            logger.error("Immich upload response body: %s", r.text)
+            
             if r.status_code in (200, 201):
                 data = r.json()
                 asset_id = data.get("id")
@@ -982,6 +989,10 @@ async def api_upload_chunk_complete(request: Request) -> JSONResponse:
     headers = {"Accept": "application/json", "Content-Type": monitor2.content_type, "x-immich-checksum": checksum, **immich_headers(request)}
     try:
         r = requests.post(f"{SETTINGS.normalized_base_url}/assets", headers=headers, data=monitor2, timeout=120)
+
+        logger.error("Immich upload response status: %s", r.status_code)
+        logger.error("Immich upload response body: %s", r.text)
+        
         if r.status_code in (200, 201):
             data_r = r.json()
             asset_id = data_r.get("id")
@@ -1085,6 +1096,10 @@ async def api_login(request: Request) -> JSONResponse:
         return JSONResponse({"error": "missing_credentials"}, status_code=400)
     try:
         r = requests.post(f"{SETTINGS.normalized_base_url}/auth/login", headers={"Content-Type": "application/json", "Accept": "application/json"}, json={"email": email, "password": password}, timeout=15)
+        
+        logger.error("Immich upload response status: %s", r.status_code)
+        logger.error("Immich upload response body: %s", r.text)
+        
     except Exception as e:
         logger.exception("Login request failed: %s", e)
         return JSONResponse({"error": "login_failed"}, status_code=502)
