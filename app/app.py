@@ -87,7 +87,6 @@ def db_init() -> None:
             checksum TEXT UNIQUE,
             filename TEXT,
             size INTEGER,
-            device_asset_id TEXT,
             immich_asset_id TEXT,
             created_at TEXT,
             inserted_at TEXT DEFAULT CURRENT_TIMESTAMP
@@ -124,22 +123,22 @@ def db_lookup_checksum(checksum: str) -> Optional[dict]:
         return {"checksum": row[0], "immich_asset_id": row[1]}
     return None
 
-def db_lookup_device_asset(device_asset_id: str) -> bool:
-    """True if a deviceAssetId has been uploaded by this service previously."""
-    conn = sqlite3.connect(SETTINGS.state_db)
-    cur = conn.cursor()
-    cur.execute("SELECT 1 FROM uploads WHERE device_asset_id = ?", (device_asset_id,))
-    row = cur.fetchone()
-    conn.close()
-    return bool(row)
+#def db_lookup_device_asset(device_asset_id: str) -> bool:
+#    """True if a deviceAssetId has been uploaded by this service previously."""
+#    conn = sqlite3.connect(SETTINGS.state_db)
+#   cur = conn.cursor()
+#    cur.execute("SELECT 1 FROM uploads WHERE device_asset_id = ?", (device_asset_id,))
+#    row = cur.fetchone()
+#    conn.close()
+#    return bool(row)
 
-def db_insert_upload(checksum: str, filename: str, size: int, device_asset_id: str, immich_asset_id: Optional[str], created_at: str) -> None:
+def db_insert_upload(checksum: str, filename: str, size: int, immich_asset_id: Optional[str], created_at: str) -> None:
     """Insert a newly-uploaded asset into the local cache (ignore on duplicates)."""
     conn = sqlite3.connect(SETTINGS.state_db)
     cur = conn.cursor()
     cur.execute(
-        "INSERT OR IGNORE INTO uploads (checksum, filename, size, device_asset_id, immich_asset_id, created_at) VALUES (?,?,?,?,?,?)",
-        (checksum, filename, size, device_asset_id, immich_asset_id, created_at)
+        "INSERT OR IGNORE INTO uploads (checksum, filename, size, immich_asset_id, created_at) VALUES (?,?,?,?,?,?)",
+        (checksum, filename, size, immich_asset_id, created_at)
     )
     conn.commit()
     conn.close()
@@ -480,20 +479,20 @@ async def api_upload(
     created_iso = created_at.isoformat()
     modified_iso = modified_at.isoformat()
 
-    device_asset_id = f"{file.filename}-{last_modified or 0}-{size}"
+   # device_asset_id = f"{file.filename}-{last_modified or 0}-{size}"
 
     if db_lookup_checksum(checksum):
         await send_progress(session_id, item_id, "duplicate", 100, "Duplicate (by checksum - local cache)")
         return JSONResponse({"status": "duplicate", "id": None}, status_code=200)
-    if db_lookup_device_asset(device_asset_id):
-        await send_progress(session_id, item_id, "duplicate", 100, "Already uploaded from this device (local cache)")
-        return JSONResponse({"status": "duplicate", "id": None}, status_code=200)
+    #if db_lookup_device_asset(device_asset_id):
+    #    await send_progress(session_id, item_id, "duplicate", 100, "Already uploaded from this device (local cache)")
+    #    return JSONResponse({"status": "duplicate", "id": None}, status_code=200)
 
     await send_progress(session_id, item_id, "checking", 2, "Checking duplicates…")
     bulk = immich_bulk_check([{"id": item_id, "checksum": checksum}])
     if bulk.get(item_id, {}).get("action") == "reject" and bulk[item_id].get("reason") == "duplicate":
         asset_id = bulk[item_id].get("assetId")
-        db_insert_upload(checksum, file.filename, size, device_asset_id, asset_id, created_iso)
+        db_insert_upload(checksum, file.filename, size, asset_id, created_iso)
         await send_progress(session_id, item_id, "duplicate", 100, "Duplicate (server)", asset_id)
         return JSONResponse({"status": "duplicate", "id": asset_id}, status_code=200)
 
@@ -501,7 +500,6 @@ async def api_upload(
     def gen_encoder() -> MultipartEncoder:
         return MultipartEncoder(fields={
             "assetData": (safe_name, io.BytesIO(raw), file.content_type or "application/octet-stream"),
-            "deviceAssetId": device_asset_id,
             "fileCreatedAt": created_iso,
             "fileModifiedAt": modified_iso,
             "isFavorite": "false",
@@ -619,7 +617,7 @@ async def api_upload(
             if r.status_code in (200, 201):
                 data = r.json()
                 asset_id = data.get("id")
-                db_insert_upload(checksum, file.filename, size, device_asset_id, asset_id, created_iso)
+                db_insert_upload(checksum, file.filename, size, asset_id, created_iso)
                 status = data.get("status", "created")
                 
                 # Add to album if configured (invite overrides .env)
@@ -858,21 +856,21 @@ async def api_upload_chunk_complete(request: Request) -> JSONResponse:
     modified_at = exif_modified or created_at
     created_iso = created_at.isoformat()
     modified_iso = modified_at.isoformat()
-    device_asset_id = f"{file_like_name}-{last_modified or 0}-{file_size}"
+    #device_asset_id = f"{file_like_name}-{last_modified or 0}-{file_size}"
 
     # Local duplicate checks
     if db_lookup_checksum(checksum):
         await send_progress(session_id_local, item_id_local, "duplicate", 100, "Duplicate (by checksum - local cache)")
         return JSONResponse({"status": "duplicate", "id": None}, status_code=200)
-    if db_lookup_device_asset(device_asset_id):
-        await send_progress(session_id_local, item_id_local, "duplicate", 100, "Already uploaded from this device (local cache)")
-        return JSONResponse({"status": "duplicate", "id": None}, status_code=200)
+   # if db_lookup_device_asset(device_asset_id):
+   #     await send_progress(session_id_local, item_id_local, "duplicate", 100, "Already uploaded from this device (local cache)")
+   #     return JSONResponse({"status": "duplicate", "id": None}, status_code=200)
 
     await send_progress(session_id_local, item_id_local, "checking", 2, "Checking duplicates…")
     bulk = immich_bulk_check([{ "id": item_id_local, "checksum": checksum }])
     if bulk.get(item_id_local, {}).get("action") == "reject" and bulk[item_id_local].get("reason") == "duplicate":
         asset_id = bulk[item_id_local].get("assetId")
-        db_insert_upload(checksum, file_like_name, file_size, device_asset_id, asset_id, created_iso)
+        db_insert_upload(checksum, file_like_name, file_size, asset_id, created_iso)
         await send_progress(session_id_local, item_id_local, "duplicate", 100, "Duplicate (server)", asset_id)
         return JSONResponse({"status": "duplicate", "id": asset_id}, status_code=200)
 
@@ -880,7 +878,6 @@ async def api_upload_chunk_complete(request: Request) -> JSONResponse:
     def gen_encoder2() -> MultipartEncoder:
         return MultipartEncoder(fields={
             "assetData": (safe_name2, io.BytesIO(raw), content_type or "application/octet-stream"),
-            "deviceAssetId": device_asset_id,
             "fileCreatedAt": created_iso,
             "fileModifiedAt": modified_iso,
             "isFavorite": "false",
@@ -988,7 +985,7 @@ async def api_upload_chunk_complete(request: Request) -> JSONResponse:
         if r.status_code in (200, 201):
             data_r = r.json()
             asset_id = data_r.get("id")
-            db_insert_upload(checksum, file_like_name, file_size, device_asset_id, asset_id, created_iso)
+            db_insert_upload(checksum, file_like_name, file_size, asset_id, created_iso)
             status = data_r.get("status", "created")
             if asset_id:
                 added = False
