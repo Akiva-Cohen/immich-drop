@@ -1,6 +1,6 @@
 # Immich Drop Uploader
 
-A tiny web app for collecting photos/videos into your **Immich** server.
+A tiny web app for collecting photos/videos into your **Immich** server. Now updated for immich version 3.0.0
 Admin users log in to create public invite links; invite links are always public-by-URL. A public uploader page is optional and disabled by default.
 
 ![Immich Drop Uploader Dark Mode UI](./screenshot.png)
