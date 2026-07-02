@@ -137,7 +137,7 @@ def db_insert_upload(checksum: str, filename: str, size: int, immich_asset_id: O
     conn = sqlite3.connect(SETTINGS.state_db)
     cur = conn.cursor()
     cur.execute(
-        "INSERT OR IGNORE INTO uploads (checksum, filename, size, immich_asset_id, created_at) VALUES (?,?,?,?,?,?)",
+        "INSERT OR IGNORE INTO uploads (checksum, filename, size, immich_asset_id, created_at) VALUES (?,?,?,?,?)",
         (checksum, filename, size, immich_asset_id, created_at)
     )
     conn.commit()
