@@ -221,12 +221,53 @@ def sanitize_filename(name: Optional[str]) -> str:
     cleaned = ''.join(cleaned_chars).strip()
     return cleaned or "file"
 
+DEFAULT_TZ = timezone.utc
 def read_exif_datetimes(file_bytes: bytes):
+     def parse_dt(dt_str: str, offset: Optional[str]) -> Optional[datetime]:
+        try:
+            if offset:
+                # EXIF: "2026:07:02 14:35:12"
+                # ISO : "2026-07-02T14:35:12-04:00"
+                iso = dt_str.replace(":", "-", 2).replace(" ", "T") + offset
+                return datetime.fromisoformat(iso)
+            # No timezone stored in EXIF; assume UTC.
+            return datetime.strptime(
+                dt_str,
+                "%Y:%m:%d %H:%M:%S",
+            ).replace(tzinfo=DEFAULT_TZ)
+        except Exception:
+            return None
+    created = None
+    modified = None
+
+    try:
+        with Image.open(io.BytesIO(file_bytes)) as im:
+            exif = getattr(im, "_getexif", lambda: None)() or {}
+            if not exif:
+                return None, None
+            tags = {ExifTags.TAGS.get(k, k): v for k, v in exif.items()}
+            created_str = tags.get("DateTimeOriginal") or tags.get("CreateDate")
+            modified_str = tags.get("ModifyDate") or created_str
+            created_offset = (
+                tags.get("OffsetTimeOriginal")
+                or tags.get("OffsetTime")
+            )
+            modified_offset = (
+                tags.get("OffsetTime")
+                or created_offset
+            )
+            if isinstance(created_str, str):
+                created = parse_dt(created_str, created_offset)
+            if isinstance(modified_str, str):
+                modified = parse_dt(modified_str, modified_offset)
+    except Exception:
+        pass
+    return created, modified
     """
     Extract EXIF DateTimeOriginal / ModifyDate values when possible.
     Returns (created, modified) as datetime or (None, None) on failure.
     """
-    created = modified = None
+    """created = modified = None
     try:
         with Image.open(io.BytesIO(file_bytes)) as im:
             exif = getattr(im, "_getexif", lambda: None)() or {}
@@ -245,7 +286,7 @@ def read_exif_datetimes(file_bytes: bytes):
                     modified = parse_dt(dt_modified)
     except Exception:
         pass
-    return created, modified
+    return created, modified"""
 
 def immich_headers(request: Optional[Request] = None) -> dict:
     """Headers for Immich API calls using either session access token or API key."""
