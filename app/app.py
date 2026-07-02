@@ -224,7 +224,7 @@ def sanitize_filename(name: Optional[str]) -> str:
 DEFAULT_TZ = timezone.utc
 
 def parse_dt(dt_str: str, offset: Optional[str]) -> Optional[datetime]:
-     try:
+    try:
         if offset:
             # EXIF: "2026:07:02 14:35:12"
             # ISO : "2026-07-02T14:35:12-04:00"
