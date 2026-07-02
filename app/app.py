@@ -237,9 +237,8 @@ def read_exif_datetimes(file_bytes: bytes):
             ).replace(tzinfo=DEFAULT_TZ)
         except Exception:
             return None
-    created = None
-    modified = None
-
+    #created = None
+    #modified = None
     try:
         with Image.open(io.BytesIO(file_bytes)) as im:
             exif = getattr(im, "_getexif", lambda: None)() or {}
