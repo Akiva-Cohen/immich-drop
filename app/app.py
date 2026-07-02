@@ -239,8 +239,8 @@ def parse_dt(dt_str: str, offset: Optional[str]) -> Optional[datetime]:
         return None
 def read_exif_datetimes(file_bytes: bytes):
      
-    #created = None
-    #modified = None
+    created = None
+    modified = None
     try:
         with Image.open(io.BytesIO(file_bytes)) as im:
             exif = getattr(im, "_getexif", lambda: None)() or {}
