@@ -46,7 +46,7 @@ version: "3.9"
 
 services:
   immich-drop:
-    image: ghcr.io/Akiva-Cohen/immich-drop:master
+    image: ghcr.io/akiva-cohen/immich-drop:master
     pull_policy: always
     container_name: immich-drop
     restart: unless-stopped
