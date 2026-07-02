@@ -476,8 +476,9 @@ async def api_upload(
     size = len(raw)
     checksum = sha1_hex(raw)
 
+    from datetime import datetime, timezone
     exif_created, exif_modified = read_exif_datetimes(raw)
-    created_at = exif_created or (datetime.fromtimestamp(last_modified / 1000) if last_modified else datetime.utcnow())
+    created_at = exif_created or (datetime.fromtimestamp(last_modified / 1000, tz=timezone.utc) if last_modified else datetime.now(timezone.utc))
     modified_at = exif_modified or created_at
     created_iso = created_at.isoformat()
     modified_iso = modified_at.isoformat()
@@ -858,8 +859,10 @@ async def api_upload_chunk_complete(request: Request) -> JSONResponse:
     file_like_name = name
     file_size = len(raw)
     checksum = sha1_hex(raw)
+
+    from datetime import datetime, timezone
     exif_created, exif_modified = read_exif_datetimes(raw)
-    created_at = exif_created or (datetime.fromtimestamp(last_modified / 1000) if last_modified else datetime.utcnow())
+    created_at = exif_created or (datetime.fromtimestamp(last_modified / 1000, tz=timezone.utc) if last_modified else datetime.now(timezone.utc))
     modified_at = exif_modified or created_at
     created_iso = created_at.isoformat()
     modified_iso = modified_at.isoformat()
