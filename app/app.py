@@ -502,7 +502,6 @@ async def api_upload(
         return MultipartEncoder(fields={
             "assetData": (safe_name, io.BytesIO(raw), file.content_type or "application/octet-stream"),
             "deviceAssetId": device_asset_id,
-            "deviceId": f"python-{session_id}",
             "fileCreatedAt": created_iso,
             "fileModifiedAt": modified_iso,
             "isFavorite": "false",
@@ -882,7 +881,6 @@ async def api_upload_chunk_complete(request: Request) -> JSONResponse:
         return MultipartEncoder(fields={
             "assetData": (safe_name2, io.BytesIO(raw), content_type or "application/octet-stream"),
             "deviceAssetId": device_asset_id,
-            "deviceId": f"python-{session_id_local}",
             "fileCreatedAt": created_iso,
             "fileModifiedAt": modified_iso,
             "isFavorite": "false",
