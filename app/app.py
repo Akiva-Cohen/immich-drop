@@ -222,21 +222,23 @@ def sanitize_filename(name: Optional[str]) -> str:
     return cleaned or "file"
 
 DEFAULT_TZ = timezone.utc
+
+def parse_dt(dt_str: str, offset: Optional[str]) -> Optional[datetime]:
+     try:
+        if offset:
+            # EXIF: "2026:07:02 14:35:12"
+            # ISO : "2026-07-02T14:35:12-04:00"
+            iso = dt_str.replace(":", "-", 2).replace(" ", "T") + offset
+            return datetime.fromisoformat(iso)
+        # No timezone stored in EXIF; assume UTC.
+        return datetime.strptime(
+            dt_str,
+            "%Y:%m:%d %H:%M:%S",
+        ).replace(tzinfo=DEFAULT_TZ)
+    except Exception:
+        return None
 def read_exif_datetimes(file_bytes: bytes):
-     def parse_dt(dt_str: str, offset: Optional[str]) -> Optional[datetime]:
-        try:
-            if offset:
-                # EXIF: "2026:07:02 14:35:12"
-                # ISO : "2026-07-02T14:35:12-04:00"
-                iso = dt_str.replace(":", "-", 2).replace(" ", "T") + offset
-                return datetime.fromisoformat(iso)
-            # No timezone stored in EXIF; assume UTC.
-            return datetime.strptime(
-                dt_str,
-                "%Y:%m:%d %H:%M:%S",
-            ).replace(tzinfo=DEFAULT_TZ)
-        except Exception:
-            return None
+     
     #created = None
     #modified = None
     try:
